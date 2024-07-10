@@ -15,35 +15,50 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// background.js
+// background.js
 
-(function () {
-  "use strict";
+// We need to import services.js before using it
+self.importScripts('services.js');
 
-  Services.init();
+Services.init();
 
-  var $rootScope = Services.$rootScope;
-  var Jobs = Services.Jobs;
-  var $q = Services.$q;
-  var _ = Services._;
+const { $rootScope, Jobs, $q, buildWatcher, buildNotifier } = Services;
 
-  $rootScope.$on('Jobs::jobs.initialized', function () {
-    Jobs.updateAllStatus().then($q.all).then(Services.buildWatcher);
+$rootScope.$on('Jobs::jobs.initialized', () => {
+  Jobs.updateAllStatus().then($q.all).then(buildWatcher);
+});
+
+$rootScope.$on('Jobs::jobs.changed', (event, jobs) => {
+  const counts = {};
+  Services._.forEach(jobs, (data) => {
+    if (data.jobs) {
+      Services._.forEach(data.jobs, (viewJob) => {
+        counts[viewJob.status] = (counts[viewJob.status] || 0) + 1;
+      });
+    } else {
+      counts[data.status] = (counts[data.status] || 0) + 1;
+    }
   });
-  $rootScope.$on('Jobs::jobs.changed', function (event, jobs) {
-    var counts = {};
-    _.forEach(jobs, function (data) {
-      if (data.jobs) {
-        _.forEach(data.jobs, function (viewJob) {
-          counts[viewJob.status] = (counts[viewJob.status] || 0) + 1;
-        });
-      } else {
-        counts[data.status] = (counts[data.status] || 0) + 1;
-      }
-    });
 
-    var count = counts.Failure || counts.Unstable || counts.Success || 0;
-    var color = counts.Failure ? '#c9302c' : counts.Unstable ? '#f0ad4e' : '#5cb85c';
-    chrome.browserAction.setBadgeText({text: count.toString()});
-    chrome.browserAction.setBadgeBackgroundColor({color: color});
-  });
-})();
+  const count = counts.Failure || counts.Unstable || counts.Success || 0;
+  const color = counts.Failure ? '#c9302c' : counts.Unstable ? '#f0ad4e' : '#5cb85c';
+
+  chrome.action.setBadgeText({ text: count.toString() });
+  chrome.action.setBadgeBackgroundColor({ color: color });
+});
+
+function updateJobs() {
+  Jobs.updateAllStatus().then($q.all).then(buildNotifier);
+}
+
+// Initial check
+updateJobs();
+
+// Set up alarm for periodic checks
+chrome.alarms.create('updateJobs', { periodInMinutes: 1 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'updateJobs') {
+    updateJobs();
+  }
+});

@@ -5,6 +5,12 @@
   "author": "Guillaume Girou",
   "homepage_url": "https://github.com/ggirou/yet-another-jenkins-notifier",
   "version": "2.3.1",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "yet-another-jenkins-notifier@guillaume.girou",
+      "strict_min_version": "46.0"
+    }
+  },
   "minimum_chrome_version": "45",
   "action": {
     "browser_style": false,
@@ -18,7 +24,8 @@
     "128": "img/icon128.png"
   },
   "background": {
-    "service_worker": "js/background.js"
+    "service_worker": "js/background.js",
+    "type": "module"
   },
   "options_ui": {
     "page": "options.html"
