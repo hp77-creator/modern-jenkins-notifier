@@ -16,28 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-(function () {
-  'use strict';
+import { init, _, Jobs, $rootScope, buildNotifier } from './services.js';
 
-  function documentReady() {
-    Services.init();
+function keepServiceWorkerAlive() {
+  chrome.runtime.sendMessage({ type: 'keepAlive' });
+  setTimeout(keepServiceWorkerAlive, 15000);
+}
 
-    var _ = Services._;
-    var Jobs = Services.Jobs;
+async function documentReady() {
+  try {
+    await init();
+    keepServiceWorkerAlive();
 
-    var $rootScope = Services.$rootScope;
-    $rootScope.$on('Jobs::jobs.initialized', function () {
-      Jobs.updateAllStatus().then(Services.buildNotifier);
-    });
-    $rootScope.$on('Jobs::jobs.changed', function (_, jobs) {
-      renderJobs(jobs);
-    });
-
-    var optionsLink = document.getElementById('optionsLink');
-    var urlForm = document.getElementById('urlForm');
-    var urlInput = document.getElementById('url');
-    var addButton = document.getElementById('addButton');
-    var errorMessage = document.getElementById('errorMessage');
+    const optionsLink = document.getElementById('optionsLink');
+    const urlForm = document.getElementById('urlForm');
+    const urlInput = document.getElementById('url');
+    const addButton = document.getElementById('addButton');
+    const errorMessage = document.getElementById('errorMessage');
+    const jobList = document.getElementById('jobList');
+    const jobItemTemplate = document.getElementById('jobItemTemplate');
+    const jobSubItemTemplate = document.getElementById('jobSubItemTemplate');
 
     optionsLink.addEventListener('click', openOptionsPage);
     urlForm.addEventListener('submit', addUrl);
@@ -46,9 +44,26 @@
     validateForm();
     placeholderRotate();
 
+    if (Jobs.jobs && Object.keys(Jobs.jobs).length > 0) {
+      renderJobs(Jobs.jobs);
+    }
+
+    $rootScope.$on('Jobs::jobs.initialized', function (_, jobs) {
+      if (jobs && Object.keys(jobs).length > 0) {
+        renderJobs(jobs);
+      }
+      Jobs.updateAllStatus().then(buildNotifier);
+    });
+    
+    $rootScope.$on('Jobs::jobs.changed', function (_, jobs) {
+      if (jobs && Object.keys(jobs).length > 0) {
+        renderJobs(jobs);
+      }
+    });
+
     function openOptionsPage() {
       if (chrome.runtime.openOptionsPage) {
-        chrome.runtime.openOptionsPage(); // Chrome 42+, Firefox 48
+        chrome.runtime.openOptionsPage();
       } else {
         chrome.tabs.create({'url': chrome.runtime.getURL('options.html')});
       }
@@ -57,64 +72,70 @@
     function addUrl(event) {
       event.preventDefault();
 
-      var url = urlInput.value;
-      Jobs.add(url).then(function () {
-        urlInput.value = '';
-      }).then(function () {
-        return Jobs.updateStatus(url);
-      });
+      const url = urlInput.value;
+      if (!url) return;
+
+      Jobs.add(url)
+        .then(() => {
+          urlInput.value = '';
+          validateForm();
+          return Jobs.updateStatus(url);
+        })
+        .catch(error => {
+          errorMessage.innerText = 'Error adding URL: ' + error.message;
+          errorMessage.classList.remove('hidden');
+        });
     }
 
     function validateForm() {
-      var isFormInvalid = !urlForm.checkValidity();
-      var isUrlInvalid = !urlInput.validity.typeMismatch;
+      const isFormInvalid = !urlForm.checkValidity();
+      const isUrlInvalid = urlInput.validity.typeMismatch;
 
       addButton.disabled = isFormInvalid;
       urlForm.classList.toggle('has-error', isFormInvalid && urlInput.value);
-      errorMessage.classList.toggle('hidden', isUrlInvalid);
+      errorMessage.classList.toggle('hidden', !isUrlInvalid);
       errorMessage.innerText = urlInput.validationMessage;
     }
 
     function placeholderRotate() {
-      var placeholderUrls = [
+      const placeholderUrls = [
         'http://jenkins/ for all jobs',
         'http://jenkins/job/my_job/ for one job',
         'http://jenkins/job/my_view/ for view jobs'
       ];
 
-      var i = 0;
+      let i = 0;
       urlInput.placeholder = placeholderUrls[0];
       window.setInterval(function () {
         urlInput.placeholder = placeholderUrls[++i % placeholderUrls.length];
       }, 5000);
     }
 
-    var jobList = document.getElementById('jobList');
-    var jobItemTemplate = document.getElementById('jobItemTemplate');
-    var jobSubItemTemplate = document.getElementById('jobSubItemTemplate');
-
     function removeUrlClick(event) {
-      Jobs.remove(event.currentTarget.dataset.url);
+      const url = event.currentTarget.dataset.url;
+      Jobs.remove(url);
     }
 
     function renderJobs(jobs) {
+      if (!jobs || Object.keys(jobs).length === 0) return;
       renderRepeat(jobList, jobItemTemplate, jobs, renderJobOrView);
     }
 
     function renderJobOrView(node, url, job) {
       renderJob(node, url, job);
 
-      var closeButton = node.querySelector('button.close');
+      const closeButton = node.querySelector('button.close');
       closeButton.dataset.url = url;
       closeButton.addEventListener('click', removeUrlClick);
 
-      var subJobs = node.querySelector('[data-id="jobs"]');
+      const subJobs = node.querySelector('[data-id="jobs"]');
       subJobs.classList.toggle('hidden', !job.jobs);
-      renderRepeat(subJobs, jobSubItemTemplate, job.jobs, renderJob);
+      if (job.jobs) {
+        renderRepeat(subJobs, jobSubItemTemplate, job.jobs, renderJob);
+      }
     }
 
-    // https://momentjs.com/docs/#/displaying/fromnow/
-    var DURATION_TIME = [
+    const DURATION_TIME = [
       {short: "y", long: "year", breakdown: 320 * 24 * 60 * 60, divisor: 365 * 24 * 60 * 60},
       {short: "mo.", long: "month", breakdown: 26 * 24 * 60 * 60, divisor: 30 * 24 * 60 * 60},
       {short: "d", long: "day", breakdown: 22 * 60 * 60, divisor: 24 * 60 * 60},
@@ -133,15 +154,15 @@
       }
 
       date = new Date(date);
-      var diff = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+      const diff = Math.floor((new Date().getTime() - date.getTime()) / 1000);
 
-      for (var i = 0; i < DURATION_TIME.length; i++) {
-        var unit = DURATION_TIME[i];
+      for (let i = 0; i < DURATION_TIME.length; i++) {
+        const unit = DURATION_TIME[i];
         if (diff >= unit.breakdown) {
-          var nb = Math.round(diff / unit.divisor);
+          const nb = Math.round(diff / unit.divisor);
           return {
-            short: "" + nb + unit.short,
-            long: "" + nb + " " + unit.long + (nb >= 2 ? "s ago" : " ago"),
+            short: `${nb}${unit.short}`,
+            long: `${nb} ${unit.long}${nb >= 2 ? "s ago" : " ago"}`,
             fullDate: date.toLocaleString()
           };
         }
@@ -149,43 +170,57 @@
     }
 
     function renderJob(node, url, job) {
+      if (!job) return;
+
       node.classList.toggle('building', job.building);
 
       _.forEach(node.querySelectorAll('[data-jobfield]'), function (el) {
-        el.innerText = job[el.dataset.jobfield];
+        el.innerText = job[el.dataset.jobfield] || '';
       });
 
       _.forEach(node.querySelectorAll('[data-lastbuildtime]'), function (el) {
-        var texts = fromNow(job.lastBuildTime);
+        const texts = fromNow(job.lastBuildTime);
         el.innerText = texts.short;
         el.title = texts.fullDate;
       });
 
       _.forEach(node.querySelectorAll('[data-jobstatusclass]'), function (el) {
-        el.className = el.className.replace(/ alert-.*$/, '').replace(/ ?$/, ' alert-' + job.statusClass);
+        el.className = el.className.replace(/ alert-.*$/, '').replace(/ ?$/, ' alert-' + (job.statusClass || ''));
       });
 
       _.forEach(node.querySelectorAll('[data-joberror]'), function (el) {
         el.classList.toggle('hidden', !job.error);
-        el.setAttribute('title', 'Error: ' + job.error);
+        el.setAttribute('title', job.error ? 'Error: ' + job.error : '');
       });
 
       _.forEach(node.querySelectorAll('a[data-joburl]'), function (el) {
-        el.href = job.url;
+        el.href = job.url || '#';
       });
     }
 
     function renderRepeat(container, template, obj, render) {
-      var keys = Object.keys(obj || {});
-      for (var i = 0; i < keys.length; i++) {
-        container.appendChild(container.children[i] || document.importNode(template.content, true));
-        render(container.children[i], keys[i], obj[keys[i]]);
+      if (!container || !template || !obj || !render) return;
+
+      const keys = Object.keys(obj || {});
+
+      for (let i = 0; i < keys.length; i++) {
+        if (i < container.children.length) {
+          render(container.children[i], keys[i], obj[keys[i]]);
+        } else {
+          const newNode = document.importNode(template.content, true);
+          container.appendChild(newNode);
+          render(container.lastElementChild, keys[i], obj[keys[i]]);
+        }
       }
-      for (var j = container.childElementCount - 1; j >= keys.length; j--) {
-        container.children[j].remove();
+
+      while (container.children.length > keys.length) {
+        container.lastElementChild.remove();
       }
     }
-  }
 
-  document.addEventListener('DOMContentLoaded', documentReady);
-})();
+  } catch (error) {
+    document.body.innerHTML = `<div class="alert alert-danger">Error initializing: ${error.message}</div>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', documentReady);

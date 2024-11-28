@@ -3,6 +3,7 @@
 <head>
   <title>Yet Another Jenkins Notifier Options</title>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'wasm-unsafe-eval'">
   <style>
     fieldset[disabled] {
       opacity: 0.75;
@@ -11,6 +12,35 @@
     textarea {
       width: 100%;
       min-height: 150px;
+    }
+
+    .error {
+      color: #d9534f;
+      margin-top: 5px;
+      display: none;
+    }
+
+    textarea.invalid + .error {
+      display: block;
+    }
+
+    .shortcut-input {
+      padding: 5px;
+      width: 200px;
+      font-family: monospace;
+      margin-right: 10px;
+    }
+
+    .shortcut-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .shortcut-help {
+      color: #666;
+      font-size: 0.9em;
+      margin-top: 5px;
     }
   </style>
 </head>
@@ -43,17 +73,33 @@
   </p>
 </fieldset>
 <p style="visibility: hidden" id="optionStatus">Options saved.</p>
+
+<fieldset>
+  <legend>Keyboard Shortcuts</legend>
+  <div class="shortcut-container">
+    <label><b>Add Job Shortcut:</b></label>
+    <input type="text" id="addJobShortcut" class="shortcut-input" placeholder="Press keys..." readonly>
+    <button id="resetShortcut">Reset to Default</button>
+  </div>
+  <div class="shortcut-help">
+    Default: Shift + J<br>
+    Click the input box and press your desired key combination.<br>
+    Supported modifiers: Shift, Ctrl, Alt
+  </div>
+</fieldset>
+<p style="visibility: hidden" id="shortcutStatus">Shortcut saved.</p>
+
 <fieldset>
   <legend>Listening job build urls</legend>
   <i>One url per line</i>
   <br>
-  <textarea id="urls"></textarea>
+  <textarea id="urls" placeholder="http://jenkins/job/my_job/"></textarea>
+  <div class="error">Please enter valid Jenkins URLs (must start with http:// or https://)</div>
   <br>
   <button id="saveUrls" type="submit">Save urls</button>
 </fieldset>
 <p style="visibility: hidden" id="urlsStatus">Urls saved.</p>
 
-<script src="js/services.js"></script>
-<script src="js/options.js"></script>
+<script type="module" src="js/options.js"></script>
 </body>
 </html>

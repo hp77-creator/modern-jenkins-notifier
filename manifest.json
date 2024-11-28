@@ -1,16 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Yet Another Jenkins Notifier",
+  "name": "Yet Yet Another Jenkins Notifier",
   "description": "This extension notifies you on Jenkins build results.",
   "author": "Guillaume Girou",
   "homepage_url": "https://github.com/ggirou/yet-another-jenkins-notifier",
   "version": "2.3.1",
-  "minimum_chrome_version": "45",
+  "minimum_chrome_version": "88",
   "action": {
-    "browser_style": false,
     "default_icon": "img/icon.png",
     "default_popup": "popup.html",
-    "default_title": "Yet Another Jenkins Notifier"
+    "default_title": "Yet Yet Another Jenkins Notifier"
   },
   "icons": {
     "16": "img/icon16.png",
@@ -18,19 +17,24 @@
     "128": "img/icon128.png"
   },
   "background": {
-    "service_worker": "js/background.js"
+    "service_worker": "js/background.js",
+    "type": "module"
   },
   "options_ui": {
     "page": "options.html"
   },
   "permissions": [
-    "tabs",
     "alarms",
-    "background",
     "storage",
-    "notifications"
+    "notifications",
+    "tabs",
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
-    "https://*/*"
-  ]
+    "*://*/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
 }
