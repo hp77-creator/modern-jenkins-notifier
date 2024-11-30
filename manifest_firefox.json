@@ -1,22 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Yet Another Jenkins Notifier",
-  "description": "This extension notifies you on Jenkins build results.",
-  "author": "Guillaume Girou",
-  "homepage_url": "https://github.com/ggirou/yet-another-jenkins-notifier",
+  "name": "Modern Jenkins Notifier",
+  "description": "A modern browser extension that notifies you of Jenkins build results with Manifest V3 support.",
+  "homepage_url": "https://github.com/hp77-creator/modern-jenkins-notifier",
   "version": "2.3.1",
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "yet-another-jenkins-notifier@guillaume.girou",
-      "strict_min_version": "46.0"
-    }
-  },
-  "minimum_chrome_version": "45",
   "action": {
-    "browser_style": false,
     "default_icon": "img/icon.png",
     "default_popup": "popup.html",
-    "default_title": "Yet Another Jenkins Notifier"
+    "default_title": "Modern Jenkins Notifier"
   },
   "icons": {
     "16": "img/icon16.png",
@@ -31,13 +22,20 @@
     "page": "options.html"
   },
   "permissions": [
-    "tabs",
     "alarms",
-    "background",
     "storage",
-    "notifications"
+    "notifications",
+    "tabs",
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
-    "https://*/*"
-  ]
+    "*://*/*"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{cimdjdaglanfkpfpoemjkfkmjgkmahpg}",
+      "strict_min_version": "109.0"
+    }
+  }
 }
