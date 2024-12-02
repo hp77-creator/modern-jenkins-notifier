@@ -19,9 +19,7 @@ Features:
 
 # Screenshots
 
-![Jobs list pop-up and desktop notification](screenshots/1280x800.png)
-_____________
-![View jobs monitoring](screenshots/1280x800-view.png)
+![Jobs list pop-up and desktop notification](screenshots/popup.png)
 _____________
 ![Configuration page](screenshots/options.png)
 

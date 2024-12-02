@@ -9,6 +9,11 @@ export const $rootScope = {
     $rootScope._listeners = $rootScope._listeners || {};
     $rootScope._listeners[event] = $rootScope._listeners[event] || [];
     $rootScope._listeners[event].push(callback);
+  }),
+  $emit: jest.fn((event, data) => {
+    if ($rootScope._listeners && $rootScope._listeners[event]) {
+      $rootScope._listeners[event].forEach(callback => callback(null, data));
+    }
   })
 };
 
@@ -32,12 +37,15 @@ jobMocks.add.mockImplementation((url) => {
     lastBuildNumber: '42',
     lastBuildTime: new Date().toISOString()
   };
+  $rootScope.$emit('Jobs::jobs.changed', Jobs.jobs);
   return Promise.resolve({ oldValue: null, newValue: Jobs.jobs[url] });
 });
 
 jobMocks.remove.mockImplementation((url) => {
+  const oldValue = Jobs.jobs[url];
   delete Jobs.jobs[url];
-  return Promise.resolve();
+  $rootScope.$emit('Jobs::jobs.changed', Jobs.jobs);
+  return Promise.resolve({ oldValue, newValue: null });
 });
 
 jobMocks.updateStatus.mockImplementation((url) => {

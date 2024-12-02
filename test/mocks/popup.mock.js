@@ -43,6 +43,56 @@ export const openOptionsPage = jest.fn().mockImplementation(() => {
 
 export const keepServiceWorkerAlive = jest.fn();
 
+// Mock job rendering functions
+function renderJob(node, url, job) {
+  if (!job) return;
+
+  node.classList.toggle('building', job.building);
+
+  const nameField = node.querySelector('[data-jobfield="name"]');
+  if (nameField) nameField.textContent = job.name || '';
+
+  const statusField = node.querySelector('[data-jobfield="status"]');
+  if (statusField) statusField.textContent = job.status || '';
+
+  const closeButton = node.querySelector('button.close');
+  if (closeButton) closeButton.dataset.url = url;
+}
+
+function renderJobs(jobs) {
+  if (!jobs || Object.keys(jobs).length === 0) return;
+
+  const jobList = document.getElementById('jobList');
+  const template = document.getElementById('jobItemTemplate');
+
+  // Clear existing jobs
+  while (jobList.firstChild) {
+    if (jobList.firstChild.nodeName !== 'TEMPLATE') {
+      jobList.firstChild.remove();
+    }
+  }
+
+  // Add new jobs
+  Object.entries(jobs).forEach(([url, job]) => {
+    const newNode = document.importNode(template.content, true);
+    const container = document.createElement('div');
+    container.appendChild(newNode);
+    renderJob(container.firstElementChild, url, job);
+    
+    // Add click handler for close button
+    const closeButton = container.querySelector('button.close');
+    closeButton.addEventListener('click', removeUrlClick);
+    
+    jobList.appendChild(container.firstElementChild);
+  });
+}
+
+// Mock job removal handler
+export const removeUrlClick = jest.fn().mockImplementation((event) => {
+  const url = event.currentTarget.dataset.url;
+  Jobs.remove(url);
+});
+
 // Mock initialization
 export const documentReady = jest.fn().mockImplementation(async () => {
   const urlForm = document.getElementById('urlForm');
@@ -54,10 +104,22 @@ export const documentReady = jest.fn().mockImplementation(async () => {
   optionsLink.addEventListener('click', openOptionsPage);
 
   validateForm();
+
+  // Initial render of jobs
+  if (Jobs.jobs && Object.keys(Jobs.jobs).length > 0) {
+    renderJobs(Jobs.jobs);
+  }
+
+  // Listen for job changes
+  $rootScope.$on('Jobs::jobs.changed', (_, jobs) => {
+    if (jobs && Object.keys(jobs).length > 0) {
+      renderJobs(jobs);
+    }
+  });
 });
 
-// Import Jobs for addUrl implementation
-import { Jobs } from './services.mock.js';
+// Import Jobs and $rootScope for implementation
+import { Jobs, $rootScope } from './services.mock.js';
 
 // Export for use in tests
 export default {
@@ -65,5 +127,6 @@ export default {
   validateForm,
   addUrl,
   openOptionsPage,
-  keepServiceWorkerAlive
+  keepServiceWorkerAlive,
+  removeUrlClick
 };

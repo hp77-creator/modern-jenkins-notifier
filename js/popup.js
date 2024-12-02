@@ -23,7 +23,7 @@ function keepServiceWorkerAlive() {
   setTimeout(keepServiceWorkerAlive, 15000);
 }
 
-async function documentReady() {
+export async function documentReady() {
   try {
     await init();
     keepServiceWorkerAlive();
@@ -36,6 +36,7 @@ async function documentReady() {
     const jobList = document.getElementById('jobList');
     const jobItemTemplate = document.getElementById('jobItemTemplate');
     const jobSubItemTemplate = document.getElementById('jobSubItemTemplate');
+    const noJobsMessage = document.querySelector('.help-block');
 
     optionsLink.addEventListener('click', openOptionsPage);
     urlForm.addEventListener('submit', addUrl);
@@ -44,21 +45,16 @@ async function documentReady() {
     validateForm();
     placeholderRotate();
 
-    if (Jobs.jobs && Object.keys(Jobs.jobs).length > 0) {
-      renderJobs(Jobs.jobs);
-    }
+    // Initial render
+    renderJobs(Jobs.jobs);
 
     $rootScope.$on('Jobs::jobs.initialized', function (_, jobs) {
-      if (jobs && Object.keys(jobs).length > 0) {
-        renderJobs(jobs);
-      }
+      renderJobs(jobs);
       Jobs.updateAllStatus().then(buildNotifier);
     });
     
     $rootScope.$on('Jobs::jobs.changed', function (_, jobs) {
-      if (jobs && Object.keys(jobs).length > 0) {
-        renderJobs(jobs);
-      }
+      renderJobs(jobs);
     });
 
     function openOptionsPage() {
@@ -117,7 +113,22 @@ async function documentReady() {
     }
 
     function renderJobs(jobs) {
-      if (!jobs || Object.keys(jobs).length === 0) return;
+      // Clear existing job list
+      while (jobList.firstChild) {
+        if (jobList.firstChild.nodeName !== 'TEMPLATE') {
+          jobList.firstChild.remove();
+        }
+      }
+
+      // Show/hide no jobs message
+      noJobsMessage.style.display = (!jobs || Object.keys(jobs).length === 0) ? 'block' : 'none';
+
+      // If no jobs, return early
+      if (!jobs || Object.keys(jobs).length === 0) {
+        return;
+      }
+
+      // Render jobs
       renderRepeat(jobList, jobItemTemplate, jobs, renderJobOrView);
     }
 

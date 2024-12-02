@@ -4,7 +4,7 @@
   "description": "A modern browser extension that notifies you of Jenkins build results with Manifest V3 support.",
   "author": "Himanshu Pandey",
   "homepage_url": "https://github.com/hp77-creator/modern-jenkins-notifier",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "minimum_chrome_version": "88",
   "action": {
     "default_icon": "img/icon.png",
@@ -27,12 +27,17 @@
     "alarms",
     "storage",
     "notifications",
-    "tabs",
     "activeTab",
     "scripting"
   ],
-  "host_permissions": [
+  "optional_host_permissions": [
     "*://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://*/*/job/*"],
+      "js": ["js/content.js"]
+    }
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"

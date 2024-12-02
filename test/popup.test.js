@@ -19,7 +19,32 @@ describe('Popup UI Tests', () => {
           </h1>
         </header>
         <main>
-          <div id="jobList" class="list-group"></div>
+          <div id="jobList" class="list-group">
+            <template id="jobItemTemplate">
+              <div class="list-group-item">
+                <button type="button" class="close" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="list-group-item-heading">
+                  <span data-jobfield="name"></span>
+                  <small data-lastbuildtime></small>
+                  <span data-joberror class="glyphicon glyphicon-warning-sign"></span>
+                </h4>
+                <p class="list-group-item-text" data-jobfield="status"></p>
+                <div data-id="jobs" class="list-group"></div>
+              </div>
+            </template>
+            <template id="jobSubItemTemplate">
+              <div class="list-group-item">
+                <h4 class="list-group-item-heading">
+                  <span data-jobfield="name"></span>
+                  <small data-lastbuildtime></small>
+                  <span data-joberror class="glyphicon glyphicon-warning-sign"></span>
+                </h4>
+                <p class="list-group-item-text" data-jobfield="status"></p>
+              </div>
+            </template>
+          </div>
           <p class="help-block">No jobs. Please enter a url below to listen for job builds.</p>
         </main>
         <footer>
@@ -140,5 +165,79 @@ describe('Popup UI Tests', () => {
         'url': chrome.runtime.getURL('options.html')
       });
     }
+  });
+
+  test('should handle job removal', async () => {
+    // Trigger jobs changed event to render jobs
+    $rootScope.$emit('Jobs::jobs.changed', Jobs.jobs);
+    
+    // Find the close button for the test job
+    const jobList = document.getElementById('jobList');
+    const closeButton = jobList.querySelector('button.close');
+    
+    expect(closeButton).not.toBeNull();
+    expect(closeButton.dataset.url).toBe('http://jenkins.example.com/job/test/');
+    
+    // Mock Jobs.remove
+    Jobs.remove = jest.fn();
+    
+    // Click the close button
+    closeButton.click();
+    
+    // Verify job removal was called
+    expect(Jobs.remove).toHaveBeenCalledWith('http://jenkins.example.com/job/test/');
+    
+    // Simulate job removal
+    Jobs.jobs = {};
+    $rootScope.$emit('Jobs::jobs.changed', Jobs.jobs);
+    
+    // Verify UI is updated
+    const jobElements = jobList.querySelectorAll('.list-group-item');
+    expect(jobElements.length).toBe(0);
+  });
+
+  test('should handle job removal with multiple jobs', async () => {
+    // Setup multiple jobs
+    Jobs.jobs = {
+      'http://jenkins.example.com/job/test1/': {
+        name: 'test1',
+        url: 'http://jenkins.example.com/job/test1/',
+        building: false,
+        status: 'Success'
+      },
+      'http://jenkins.example.com/job/test2/': {
+        name: 'test2',
+        url: 'http://jenkins.example.com/job/test2/',
+        building: false,
+        status: 'Success'
+      }
+    };
+    
+    // Trigger jobs changed event to render jobs
+    $rootScope.$emit('Jobs::jobs.changed', Jobs.jobs);
+    
+    // Find all close buttons
+    const jobList = document.getElementById('jobList');
+    const closeButtons = jobList.querySelectorAll('button.close');
+    
+    expect(closeButtons.length).toBe(2);
+    
+    // Mock Jobs.remove
+    Jobs.remove = jest.fn();
+    
+    // Remove first job
+    closeButtons[0].click();
+    
+    // Verify correct job was removed
+    expect(Jobs.remove).toHaveBeenCalledWith('http://jenkins.example.com/job/test1/');
+    
+    // Simulate job removal
+    delete Jobs.jobs['http://jenkins.example.com/job/test1/'];
+    $rootScope.$emit('Jobs::jobs.changed', Jobs.jobs);
+    
+    // Verify UI is updated
+    const remainingJobs = jobList.querySelectorAll('.list-group-item');
+    expect(remainingJobs.length).toBe(1);
+    expect(remainingJobs[0].querySelector('[data-jobfield="name"]').textContent).toBe('test2');
   });
 });

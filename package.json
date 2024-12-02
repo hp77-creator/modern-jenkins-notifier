@@ -1,0 +1,42 @@
+{
+  "name": "modern-jenkins-notifier",
+  "version": "1.0.0",
+  "description": "Modern browser extension for Jenkins build notifications with Manifest V3 support",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ui": "jest test/popup.test.js",
+    "test:services": "jest test/services.test.js",
+    "test:browser": "jest test/browser-api.test.js",
+    "test:performance": "jest test/performance.test.js --runInBand",
+    "test:all": "jest --runInBand --verbose"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.5",
+    "@babel/preset-env": "^7.22.5",
+    "@testing-library/dom": "^9.3.1",
+    "@testing-library/jest-dom": "^5.16.5",
+    "babel-jest": "^29.5.0",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^29.5.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.js"
+    ],
+    "moduleNameMapper": {
+      "^chrome$": "<rootDir>/test/mocks/chrome.js"
+    },
+    "collectCoverageFrom": [
+      "js/**/*.js"
+    ],
+    "coverageReporters": [
+      "text",
+      "html"
+    ],
+    "testTimeout": 30000,
+    "verbose": true
+  }
+}
